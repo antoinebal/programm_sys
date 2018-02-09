@@ -1,0 +1,30 @@
+#include <pthread.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <stdio.h>
+
+pthread_mutex_t mutex;
+
+void* f1(void* arg) {
+    for(int i=0; i < *(int*)arg; i++) {
+      
+      printf("j'ai le mutex");
+  }
+}
+
+
+
+int main(void) {
+  int max=5;
+  pthread_t tid1;
+  pthread_t tid2;
+
+  pthread_create(&tid1, NULL, f1,(void*)&max);
+  
+  for(int i=0; i < N; i++) {
+    pthread_once(&once,fonction_init);
+    printf("got it %d \n", i);
+    
+    sleep(2);
+  }
+}
