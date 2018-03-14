@@ -7,7 +7,18 @@
 
 void handler(int sig) {
   
-  printf("on tue le fils");
+  printf("on tue le fils \n");
+  exit(0);
+}
+
+void handlerMortFils(int sig) {
+
+  printf("mon fils est mort\n");
+
+}
+
+void handlerPere(int sig) {
+  printf("on tue le pere");
   exit(0);
 }
 
@@ -20,8 +31,10 @@ int main(void)
   sigfillset(&masque);
   //on enlève le signal 10 SIGUSR1 (car il doit le traiter)
   sigdelset(&masque, SIGUSR1);
-  //on enlève le signal ctrl+c SIGINT (car il doit le traiter)
+  //on enlève le signal ctrl+c SIGINT
   sigdelset(&masque, SIGINT);
+  //on enlève le signal SIGCHLD SIGINT
+  sigdelset(&masque, SIGCHLD);
   //on le bind
   sigprocmask(SIG_SETMASK, &masque, NULL);
   
@@ -34,7 +47,7 @@ int main(void)
 
     //* FILS *//
   } else if (pid == 0) {
-    printf("fils \n");
+    printf("fils %d \n", pid);
 
     //CREATION DU SIGACTION
     struct sigaction action;
@@ -48,20 +61,33 @@ int main(void)
 
     //* PERE *//
   } else { 
-    printf("pere \n");
-    sleep(10);
+    printf("pere %d \n", pid);
+
+    //CREATION DU SIGACTION POUR REAGIR A LA MORT DU FILS
+    struct sigaction action2;
+    action2.sa_handler = handlerMortFils;
+    action2.sa_flags = 0;
+    sigaction(SIGCHLD, &action2, NULL);
+
+    //CREATION DU SIGACTION POUR TRAITER LE SIGNAL SIGUSR1 DEPUIS LE TERMINAL
+    struct sigaction action3;
+    action3.sa_handler = handlerPere;
+    action3.sa_flags = 0;
+    sigaction(SIGUSR1, &action3, NULL);
+
+
+    
+    sleep(3);
+
+
+
 
     //ENVOI DU SIGNAL AU FILS
     kill(pid, SIGUSR1);
 
-    //CREATION DU SIGACTION
-    struct sigaction action2;
-    action2.sa_handler = handler;
-    action2.sa_flags = 0;
-     sigaction(SIGINT, &action2, NULL);
-
+    
     //le père doit attendre le signal du terminal
-    while (1) { };
+    while (1) { pause(); };
     
 
     return 0;
