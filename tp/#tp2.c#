@@ -13,15 +13,21 @@ void handler(int sig) {
 
 
 
-void handlerPere(int sig) {
-  printf("on tue le pere");
-  exit(0);
-}
-
 int main(void)
 {
 
- 
+  //CREATION ET BIND DU MASQUE
+  sigset_t masque;
+  //on remplit le masque (il ne laisse rien passer)
+  sigfillset(&masque);
+  //on enlève le signal 10 SIGUSR1 (car il doit le traiter)
+  sigdelset(&masque, SIGUSR1);
+  //on enlève le signal ctrl+c SIGINT
+  sigdelset(&masque, SIGINT);
+  //on enlève le signal SIGCHLD SIGINT
+  sigdelset(&masque, SIGCHLD);
+  //on le bind
+  sigprocmask(SIG_SETMASK, &masque, NULL);
   
   int pid;
   
