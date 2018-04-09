@@ -13,6 +13,9 @@ void handler_fils (int sig)
 	exit(0) ;   
 }
 
+/*Dans un tube : 0 <=> lecture
+				 1 <=> écriture */
+
 /* le fils écrit dans le tube2 et lit dans le tube1
 	le père lit dans le tube1 et écrit dans le tube2 */
 float calcul_débit_tube(int nb_ping_pong, char *unit, double *time)
@@ -24,21 +27,27 @@ float calcul_débit_tube(int nb_ping_pong, char *unit, double *time)
 	struct sigaction saINT ;
 	clock_t deb, fin ; 
 	sigset_t mask ;
+
+	//on crée les tubes
 	pipe(tube1) ; 
 	pipe(tube2) ;
-	sigfillset(&mask) ; 
-	sigdelset(&mask, SIGINT) ; 
-	sigprocmask(SIG_SETMASK, &mask, NULL) ; 
+
+	//MASQUE
+	sigfillset(&mask) ; //on le remplit 
+	sigdelset(&mask, SIGINT) ; //on elève SIGINT
+	sigprocmask(SIG_SETMASK, &mask, NULL) ; //on le set
+
+	//SIGACTION
 	saINT.sa_handler = handler_fils ;
 	saINT.sa_mask = mask ; 
-	saINT.sa_flags = 0 ; 
+	saINT.sa_flags = 0 ;
+ 
 	switch (pid = fork())
 	{
 		case -1: printf("Erreur de création du fils\n") ;
 			 return -1 ; 
 	       
-
-		//YOU'LL ALWAYS BE MY FIRST BORN
+		//fils : CONGRATULATIONS FATHER 
 		case 0:  close(tube2[0]) ; 
 			 close(tube1[1]) ; 
 			 sigaction(SIGINT, &saINT, NULL) ; 
@@ -59,7 +68,7 @@ float calcul_débit_tube(int nb_ping_pong, char *unit, double *time)
 			 break ;
 
 
-	    //CONGRATULATIONS FATHER    
+	    //père : YOU'LL ALWAYS BE MY FIRST BORN 
 		default: close(tube1[0]) ; 
 			 close(tube2[1]) ; 
 			 a = 0; 
