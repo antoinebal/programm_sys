@@ -3,14 +3,16 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-void* lannister(void* arg) {
-  int* N = (int*)arg;
-  int i = 0;
-  for(i=0 ; i < *N ; i++) {
+typedef void *(*fct_ptr_type)(void *);
+
+void* lannister(int* N) {
+  for(int i=0 ; i < *N ; i++) {
     printf("Lannister of Castral Rock \n");
     sleep(1);
   }
-  pthread_exit(1);
+  int *s = malloc(sizeof(int));
+  *s = 44;
+  pthread_exit(s);
 }
 
 void main () {
@@ -22,11 +24,15 @@ void main () {
   printf("Choix Lannister: ");
   scanf("%d", &N);
   int i = 0;
-  pthread_create(&tid, NULL, lannister, (void*)&N);
+  pthread_create(&tid, NULL, (fct_ptr_type)lannister, &N);
  
     for(i=0 ; i < M ; i++) {
       printf("Stark of Winterfell \n");
       sleep(1);
     }
+
+    int* s = NULL;
+    pthread_join(tid, (void**)&s);
+    printf("%d \n", *s);
   
 }
