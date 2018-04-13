@@ -16,9 +16,10 @@ void* lannister(int* max) {
     pthread_mutex_unlock(&mutex);
     sleep(1);
   }
+  return NULL;
 }
 
-void main () {
+int main () {
   pthread_t tid;
   int max;
   printf("Choix max: ");
@@ -35,5 +36,5 @@ void main () {
       pthread_mutex_unlock(&mutex);
       sleep(1);
     }
-
+    return EXIT_SUCCESS;
 }

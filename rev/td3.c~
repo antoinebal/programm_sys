@@ -3,8 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+
 
 typedef void *(*fct_ptr_type)(void *);
 
@@ -12,6 +11,10 @@ typedef struct T_Seiche{
   int* iterations;
   int ressources_requises;
 }
+
+
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 
 //notre compteur de ressources
 static int* px = NULL;
