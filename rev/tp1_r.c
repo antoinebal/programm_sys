@@ -31,8 +31,8 @@ void main () {
       sleep(1);
     }
 
-    int* s = NULL;
-    pthread_join(tid, (void**)&s);
-    printf("%d \n", *s);
+    //int* s = NULL;
+    pthread_cancel(tid);
+    // printf("%d \n", *s);
   
 }

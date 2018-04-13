@@ -1,0 +1,26 @@
+void* greyjoy(T_Seiche theon) {
+  
+  for(int i=0 ; i < *theon.iterations ; i++) {
+    pthread_cond_wait(&cond, &mutex);
+    
+    if (*px >= 3_requises) {//assez de ressources
+      printf("Thread n° %d prend ses ressources", 3);
+      *px = *px - 3;
+      printf("%d", *px);  
+      pthread_cond_broadcast(&cond);
+      pthread_mutex_unlock(&mutex);
+      
+      sleep(1);
+
+      pthread_cond_wait(&cond, &mutex);
+      printf("Thread n° %d libère ses ressources", 3);
+      *px = *px + 3;
+      printf("%d", *px);
+      pthread_cond_broadcast(&cond);
+      pthread_mutex_unlock(&mutex);
+    } else {//pas suffisamment de ressources
+      pthread_cond_broadcast(&cond);
+      pthread_mutex_unlock(&mutex);
+    }
+  }
+}
