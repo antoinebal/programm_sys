@@ -75,6 +75,7 @@ void winterfell(S_Arg *arg) {
       //également, on le fait permutter les adresses V_New_ et V_
       pthread_mutex_lock(&mutexIndicateur);
       indicateur = 0;
+      printf("Le thread n° %d a fini en dernier \n", (*arg).id_);
       pthread_mutex_unlock(&mutexIndicateur);
 
       permuteAdresses((*arg).V_ , (*arg).V_New_);
@@ -123,21 +124,28 @@ void winterfell(S_Arg *arg) {
     //CREATION DU TABLEAU DE TID
     pthread_t tidTab[nbreThreads-1];
 
-    //CREATION DES THREADS
+    //CREATION DU TABLEAU DE S_ARG
+    /* en fait pb car on filait en argument un pointeur vers
+       le même S_Arg, du coup premiere et derniere lignes, id
+       etc étaient les mêmes.*/
+    S_Arg tabSArg[nbreThreads-1];
     int ligneCourante = 0;
     int lignesParThread = taille_matrice/nbreThreads;
     for (int i = 0 ; i < nbreThreads-1 ; i++) {
-      S_Arg sCourant;
-      sCourant.indice_premiere_ligne_ = ligneCourante;
-      sCourant.indice_derniere_ligne_ = ligneCourante + lignesParThread;
-      sCourant.D_ = D;
-      sCourant.V_ = V;
-      sCourant.V_New_ = V_New;
-      sCourant.id_ = i+1;
+      tabSArg[i].indice_premiere_ligne_ = ligneCourante;
+      tabSArg[i].indice_derniere_ligne_ = ligneCourante + lignesParThread;
+      tabSArg[i].D_ = D;
+      tabSArg[i].V_ = V;
+      tabSArg[i].V_New_ = V_New;
+      tabSArg[i].id_ = i+1;
 
       ligneCourante = ligneCourante + lignesParThread + 1;
+    }
     
-      pthread_create(&tidTab[i], NULL, (fct_ptr_type)winterfell, &sCourant);
+
+    //CREATION DES THREADS
+    for (int i = 0 ; i < nbreThreads-1 ; i++) {    
+      pthread_create(&tidTab[i], NULL, (fct_ptr_type)winterfell, &tabSArg[i]);
     }
 
     int premiere_ligne_main = ligneCourante;
@@ -158,6 +166,7 @@ void winterfell(S_Arg *arg) {
 	//pas le dernier à finir, on incrémente seulement l'indicateur
 	pthread_mutex_lock(&mutexIndicateur);
 	indicateur++;
+	printf("Le thread main a fini en %d ème \n", indicateur);
 	pthread_mutex_unlock(&mutexIndicateur);
       } else {
 	/*ce thread est le dernier à finir, il doit remettre
@@ -165,9 +174,9 @@ void winterfell(S_Arg *arg) {
 	//également, on le fait permutter les adresses V_New et V
 	pthread_mutex_lock(&mutexIndicateur);
 	indicateur = 0;
-	printf("Le thread main a fini en %d ème \n", indicateur);
+	printf("Le thread main a fini en dernier \n");
 	pthread_mutex_unlock(&mutexIndicateur);
-
+	
 	permuteAdresses(V , V_New);
 
 	pthread_cond_broadcast(&condAttenteDernier);
@@ -175,4 +184,4 @@ void winterfell(S_Arg *arg) {
 
     }
 
-  }
+}
