@@ -4,7 +4,7 @@
 #include <sys/types.h>
 #include <signal.h>
 #include <pthread.h>
-#define taille_matrice 1000
+#define taille_matrice 10
 
 //à passer en arg à la fonction du thread
 typedef struct {
@@ -37,11 +37,31 @@ static int nbreIterations;
 //défini par l'utilisateur
 static int nbreThreads;
 
+//pour savoir si tous les threads ont été créés
+//static int onPeutCommencer;
+
 
 void permuteAdresses(int* adr1, int* adr2) {
   int* aux = adr1;
   adr1 = adr2;
   adr2 = aux;
+}
+
+//afficher matrice 2D
+void afficherMatrice(int* mat) {
+    for (int NO = 0 ; NO < taille_matrice ; NO++) {
+	for (int NB = 0 ; NB < taille_matrice ; NB++) {
+	  printf("%d", mat[NO*taille_matrice + NB]);
+	}
+	printf("\n");
+      }
+}
+
+
+void afficherVecteur(int* vec) {
+  for (int NO = 0 ; NO < taille_matrice ; NO++) {
+    printf("%d \n", vec[NO]);
+  }
 }
 
 
@@ -50,9 +70,27 @@ void permuteAdresses(int* adr1, int* adr2) {
 //(sans le reste)
 void winterfell(S_Arg *arg) {
 
+  //si le thread a fini dernier, il n'a pas besoin d'attendre la cond
+  int finiDernier=0;
   printf("Thread n° %d crée. \n", (*arg).id_);
+
+  if ((*arg).id_==nbreThreads-1) { //cela veut dire que tous les threads ont été crées
+    //(celui-ci étant le dernier crée par le main)
+    //on émet le signal quand tous les threads sont crées aussi
+     pthread_cond_broadcast(&condAttenteDernier);
+     printf("Thread n° %d a fait le broadcast. \n", (*arg).id_);
+  }
   
   for (int i = 0 ; i < nbreIterations ; i++) {
+    if (finiDernier ==0) {
+    if ((i!=0)|((*arg).id_!=nbreThreads-1)){ //pour sa première it, le dernier thread crée 
+      printf("Thread n° %d attend. \n", (*arg).id_);//ne doit pas attendre
+      pthread_cond_wait(&condAttenteDernier, &mutexIndicateur);
+      pthread_mutex_unlock(&mutexIndicateur);
+      printf("Thread %d est passé \n", (*arg).id_);
+    }
+    }
+    finiDernier = 1;
 
     //MULTIPLICATION
     for (int NO = (*arg).indice_premiere_ligne_ ; NO <= (*arg).indice_derniere_ligne_ ; NO++) {
@@ -62,7 +100,8 @@ void winterfell(S_Arg *arg) {
     }
 
     //l'opération est finie
-    if (indicateur < nbreThreads) {
+    printf("Thread %d valeur indicateur : %d \n", (*arg).id_, indicateur);
+    if (indicateur < nbreThreads-1) {
       //pas le dernier à finir, on incrémente seulement l'indicateur
       pthread_mutex_lock(&mutexIndicateur);
       indicateur++;
@@ -76,11 +115,13 @@ void winterfell(S_Arg *arg) {
       pthread_mutex_lock(&mutexIndicateur);
       indicateur = 0;
       printf("Le thread n° %d a fini en dernier \n", (*arg).id_);
+      printf("Iteration n° %d finie \n", i);
       pthread_mutex_unlock(&mutexIndicateur);
 
       permuteAdresses((*arg).V_ , (*arg).V_New_);
 
       pthread_cond_broadcast(&condAttenteDernier);
+      finiDernier = 1;
     }
       
   }
@@ -89,6 +130,9 @@ void winterfell(S_Arg *arg) {
 
   //le main s'occupera de la dernière part de ligne + du reste récup avec le mod
   int main () {
+    //si le thread a fini dernier, il n'a pas besoin d'attendre la cond
+    int finiDernier=0;
+  
     //CREATION DE LA MATRICE D
     int* D=(int*)malloc(taille_matrice*taille_matrice*sizeof(int));
 
@@ -100,6 +144,9 @@ void winterfell(S_Arg *arg) {
 	D[i*taille_matrice + j]  = rand()%10+1; //pour que 1 < D[i][j] < 10
       }
     }
+
+    printf("D : \n");
+    afficherMatrice(D);
     
     
     //CREATION DU VECTEUR V[0]
@@ -108,6 +155,9 @@ void winterfell(S_Arg *arg) {
     for(j=0 ; j < taille_matrice ; j++) {
       V[j] = rand()%10+1; //pour que 1 < V[j] < 10
     }
+
+    printf("V[0] : \n");
+    afficherVecteur(V);
     
     //ALLOCATION MEMOIRE POUR V_NEW
     //le mieux est de le faire ici, et on switch les adresses de V_ et V_New_ au lieu
@@ -147,11 +197,21 @@ void winterfell(S_Arg *arg) {
     for (int i = 0 ; i < nbreThreads-1 ; i++) {    
       pthread_create(&tidTab[i], NULL, (fct_ptr_type)winterfell, &tabSArg[i]);
     }
+ 
 
     int premiere_ligne_main = ligneCourante;
     int derniere_ligne_main = taille_matrice -1;
 
     for (int i = 0 ; i < nbreIterations ; i++) {
+      printf("%d", i);
+      if (finiDernier == 0) {
+      printf("Le thread main attend \n");
+      pthread_cond_wait(&condAttenteDernier, &mutexIndicateur);
+      pthread_mutex_unlock(&mutexIndicateur);
+      printf("Thread main est passé \n");
+      }
+      finiDernier = 0;
+      
 
       //MULTIPLICATION
       for (int NO = premiere_ligne_main ; NO <= derniere_ligne_main ; NO++) {
@@ -162,7 +222,7 @@ void winterfell(S_Arg *arg) {
 
       
       //l'opération est finie
-      if (indicateur < nbreThreads) {
+      if (indicateur < nbreThreads-1) {
 	//pas le dernier à finir, on incrémente seulement l'indicateur
 	pthread_mutex_lock(&mutexIndicateur);
 	indicateur++;
@@ -175,11 +235,13 @@ void winterfell(S_Arg *arg) {
 	pthread_mutex_lock(&mutexIndicateur);
 	indicateur = 0;
 	printf("Le thread main a fini en dernier \n");
+	printf("Iteration n° %d finie \n", i);
 	pthread_mutex_unlock(&mutexIndicateur);
 	
 	permuteAdresses(V , V_New);
 
 	pthread_cond_broadcast(&condAttenteDernier);
+	finiDernier = 1;
       }
 
     }
